@@ -1,0 +1,151 @@
+---
+title: "MERS"
+output: html_notebook
+---
+
+## Load libraries
+
+```{r}
+library(ape)
+library(treedater)
+library(adephylo)
+library(lubridate)
+library(ggplot2)
+```
+
+## Read sequence data
+
+```{r}
+s <- read.dna("MERS_CoV_274_CDS.fna",format="fasta")
+s
+```
+
+Load dates and traits.
+
+```{r}
+snames <- row.names(s)
+sdates <- read.table("MERS_CoV_274_CDS.dates.txt",header=F,row.names=NULL,sep="\t")
+straits <- read.table("MERS_CoV_274_CDS.traits.txt",header=F,row.names=NULL,sep="\t")
+```
+
+Rename sequences to conform with IQTREE specifications.
+
+```{r}
+newsnames <- gsub("/","_",snames,fixed=TRUE)
+newsnames <- gsub("|","_",newsnames,fixed=TRUE)
+newsnames <- gsub("_","_",newsnames,fixed=TRUE)
+news <- s
+row.names(news) <- newsnames
+write.dna(news,"MERS_CoV_274_CDS_renamed.fasta",format="fasta",nbcol=-1,colsep="")
+```
+
+Run IQTREE.
+
+```{bash}
+iqtree -s MERS_CoV_274_CDS_renamed.fasta -spp partitions.nex -pre MERS_CoV_274_CDS_renamed -allnni -nt 12
+```
+
+## Treedater analysis
+
+```{r}
+treefile <- "MERS_CoV_274_CDS_renamed.treefile"
+seqlen <- 29364
+tre <- unroot(read.tree(treefile))
+tipnames <- tre$tip.label
+```
+
+```{r}
+idx <- match(tipnames,newsnames)
+oldnames <- snames[idx]
+tipdates <- sdates[match(oldnames,sdates[,1]),2]
+names(tipdates) <- tipnames
+```
+
+```{r}
+treed <- dater(tre, tipdates, s=seqlen, maxit = 100, minblen=1./365, abstol = .001, quiet = TRUE, temporalConstraints=TRUE, numStart=2, searchRoot=10, strictClock=FALSE, ncpu=10)
+treed
+```
+
+## MCC from Dudas et al.
+
+```{r}
+mcc <- read.nexus("MERS_274_sCoal.combinedTyped.mcc.tree")
+mcc
+```
+
+```{r}
+mccidx <- match(mcc$tip.label,sdates[,1])
+mccdates <- sdates[mccidx,2]
+max(mccdates)
+```
+
+This is already a time-calibrated tree, so we simply need to work out the depth in order to work out the TMRCA.
+
+```{r}
+mcc.dr <- distRoot(mcc)
+```
+
+## LSD
+
+Output data for LSD.
+
+```{r}
+df <- data.frame(c(length(tipdates),names(tipdates)),c("",tipdates))
+write.table(df,"MERS_CoV_274_CDS.td",col.names=FALSE,row.names=FALSE,quote=FALSE,sep="\t")
+```
+
+Run LSD.
+
+```{bash}
+lsd -i MERS_CoV_274_CDS_renamed.treefile -d MERS_CoV_274_CDS.td -o MERS_CoV_274_CDS.lsd -r a -v 2 -b 10 -s 29364 -c -f 1000
+```
+
+Read in tree and calculate distances to root.
+
+```{r}
+lsd <- read.tree("MERS_CoV_274_CDS.lsd.date.newick")
+```
+
+```{r}
+lsd.dr <- distRoot(lsd)
+```
+
+## Comparison TMRCA
+
+```{r}
+date_decimal(max(mccdates)-max(mcc.dr))
+```
+
+```{r}
+date_decimal(treed$timeOfMRCA)
+```
+
+```{r}
+date_decimal(max(mccdates)-max(lsd.dr))
+```
+
+## Comparison LTT
+
+```{r}
+ltt <- function(tre,mrsd){
+  lineages <- ltt.plot.coords(tre,backward=TRUE)
+  lineages <- as.data.frame(lineages)
+  names(lineages) <- c("Time","Lineages")
+  lineages$Time <- mrsd+lineages$Time
+  lineages
+}
+```
+
+```{r}
+treed.ltt <- ltt(treed,decimal_date(ymd("2015-09-17")))
+mcc.ltt <- ltt(mcc,decimal_date(ymd("2015-09-17")))
+lsd.ltt <- ltt(lsd,decimal_date(ymd("2015-09-17")))
+```
+
+
+```{r}
+p <- ggplot()+geom_line(data=treed.ltt,aes(x=Time,y=Lineages,color="treedater"))+geom_line(data=mcc.ltt,aes(x=Time,y=Lineages,color="BRMC"))+geom_line(data=lsd.ltt,aes(x=Time,y=Lineages,color="QPD"))+scale_alpha_manual(name="Model", values=c("treedater"="red","BRMC"="purple","QPD"="green"))+scale_x_continuous(limits=c(2008,2016))
+p
+```
+
+

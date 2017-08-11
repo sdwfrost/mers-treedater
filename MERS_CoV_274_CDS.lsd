@@ -1,0 +1,31 @@
+
+LEAST-SQUARE METHODS TO ESTIMATE RATES AND DATES - v0.3beta 
+
+
+Input files:
+  I                                 Input tree file : MERS_CoV_274_CDS_renamed.treefile
+  D                                 Input date file : MERS_CoV_274_CDS.td
+Output file:
+  O                                    Output file  : MERS_CoV_274_CDS.lsd
+Parameters:
+  C                                With constraints : Yes
+  T                        Lower bound for the rate : 1.000e-10
+  V                                  With variances : Yes, use variances based on branches estimated by LSD
+  B                          Parameter of variances : 10
+  S                                 Sequence Length : 29364
+  R                               Estimate the root : Use fast method to search on all branches
+  W                         Given substitution rate : No
+  G                                 Given outgroups : No
+  N                               Multiple data set : No
+  F                    Compute confidence intervals : Yes, sampling 1000 times
+
+  H to print Help 
+  Y to accept or type a letter to change an option (Q = Exit) 
+Tree 1 rate 5.373e-04 , tMRCA 2008.367 , objective function 1.968429e+01
+Re-estimate using variances based on the branch lengths of the previous run ...
+rate 5.548e-04 , tMRCA 2008.562 , objective function 1.479222e+02
+rate 5.548e-04 [4.777e-04 , 6.079e-04] , tMRCA 2008.562 [2007.673 , 2009.178] , objective function 1.479222e+02
+
+
+*********************************************************
+Elapsed time: 17.05 seconds

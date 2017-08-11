@@ -1,0 +1,8 @@
+#nexus
+begin sets;
+	charset cp1 = 1-29364\3;
+	charset cp2 = 2-29364\3;
+	charset cp3 = 3-29364\3;
+	charpartition mers = HKY+F+G4:cp1, HKY+F+G4:cp2, HKY+F+G4:cp3;
+end;
+
